@@ -1,0 +1,40 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Rounded hex container -->
+  <polygon
+    points="128,24 206,72 206,168 128,216 50,168 50,72"
+    fill="#8DBF43"
+    stroke="#8DBF43"
+    stroke-width="16"
+    stroke-linejoin="round"/>
+
+  <!-- Column groups with spacing -->
+  <g transform="translate(74,76)">
+
+    <!-- Geometry:
+         column width = 30
+         gap = 9
+         total width = 108
+    -->
+
+    <!-- Column 1 (unselected) -->
+    <rect x="0" y="0" width="30" height="104" fill="#A9CF6A"/>
+
+    <!-- Column 2 (selected) -->
+    <rect x="39" y="0" width="30" height="104" fill="#D6EFA3"/>
+
+    <!-- Column 3 (selected) -->
+    <rect x="78" y="0" width="30" height="104" fill="#D6EFA3"/>
+
+  </g>
+
+  <!-- Validation checkmark -->
+  <path
+    d="M78 130 L110 162 L182 92"
+    fill="none"
+    stroke="#1F2A1F"
+    stroke-width="14"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+
+</svg>
