@@ -6,10 +6,14 @@ looking up, listing, and removing Pandera schema entries.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
 import pandera.pandas as pa
 
 from .types import SchemaEntry, SchemaProjectionEntry, SchemaProjectionStep
+
+if TYPE_CHECKING:
+    from .backend import SqlCatalogBackend
 
 
 class PanderaCatalog:
@@ -29,9 +33,16 @@ class PanderaCatalog:
     <Schema DataFrameSchema(columns={'value': ...}, ...)>
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, backend: SqlCatalogBackend | None = None) -> None:
         self._store: dict[str, SchemaEntry] = {}
         self._projections: dict[str, SchemaProjectionEntry] = {}
+        self._backend = backend
+        if self._backend is not None:
+            self._backend.initialize()
+            for entry in self._backend.load_schemas():
+                self._store[entry.name] = entry
+            for projection_entry in self._backend.load_projections():
+                self._projections[projection_entry.name] = projection_entry
 
     # ------------------------------------------------------------------
     # Mutating operations
@@ -79,6 +90,8 @@ class PanderaCatalog:
             description=description,
             tags=list(tags or []),
         )
+        if self._backend is not None:
+            self._backend.upsert_schema(self._store[name])
 
     def register_projection(
         self,
@@ -135,6 +148,8 @@ class PanderaCatalog:
             steps=resolved_steps,
             description=description,
         )
+        if self._backend is not None:
+            self._backend.upsert_projection(self._projections[name], resolved_columns)
 
     def remove(self, name: str) -> None:
         """Remove the schema registered under *name*.
@@ -152,12 +167,16 @@ class PanderaCatalog:
         if name not in self._store:
             raise KeyError(f"Schema '{name}' is not registered.")
         del self._store[name]
+        if self._backend is not None:
+            self._backend.remove_schema(name)
 
     def remove_projection(self, name: str) -> None:
         """Remove the projection registered under *name*."""
         if name not in self._projections:
             raise KeyError(f"Projection '{name}' is not registered.")
         del self._projections[name]
+        if self._backend is not None:
+            self._backend.remove_projection(name)
 
     # ------------------------------------------------------------------
     # Read operations
@@ -244,6 +263,11 @@ class PanderaCatalog:
         names = self.list()
         projections = self.list_projections()
         return f"PanderaCatalog(schemas={names!r}, projections={projections!r})"
+
+    @property
+    def backend(self) -> SqlCatalogBackend | None:
+        """Return the configured SQL backend, if any."""
+        return self._backend
 
     @staticmethod
     def _find_duplicate_columns(columns: list[str]) -> list[str]:

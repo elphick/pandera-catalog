@@ -1,6 +1,6 @@
 [project]
 name = "pandera-catalog"
-version = "0.2.0"
+version = "0.3.0"
 description = "A database-backed catalog for defining and managing Pandera schemas."
 authors = [
     { name = "Greg Elphick", email = "11791585+elphick@users.noreply.github.com" }
@@ -19,6 +19,7 @@ dependencies = [
     "pandera>=0.19",
     "pandas>=2.0",
     "pyyaml>=6.0",
+    "sqlalchemy>=2.0",
 ]
 
 [project.optional-dependencies]

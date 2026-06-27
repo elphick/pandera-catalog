@@ -41,3 +41,27 @@ names.
 
    print(catalog.list())
    # ['my_schema', 'sales_data']
+
+Using a SQL backend
+-------------------
+
+To persist entries and expose tabular SQL views, pass a
+:class:`~pandera_catalog.backend.SqlCatalogBackend` into the catalog:
+
+.. code-block:: python
+
+   from pandera_catalog import PanderaCatalog, SqlCatalogBackend
+   from sqlalchemy import create_engine
+
+   engine = create_engine("postgresql+psycopg://user:pass@host/dbname")
+   backend = SqlCatalogBackend(engine=engine)
+   catalog = PanderaCatalog(backend=backend)
+
+The backend creates normalized tables plus views including
+``v_schema_catalog``, ``v_schema_columns``, ``v_schema_checks``,
+``v_projection_steps``, and ``v_metadata_lookup``. Projected schemas are
+materialized into schema/column/check views with ``is_projected`` and
+``source_projection_name`` markers.
+
+If you do not already have an engine, you can still pass a URL string and let
+the backend create one for you.

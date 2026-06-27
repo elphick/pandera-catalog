@@ -30,6 +30,18 @@ class TestCatalogInit:
         assert "PanderaCatalog" in repr(catalog)
 
 
+def test_schema_entry_and_projection_repr(simple_schema):
+    entry = SchemaEntry(name="sample", schema=simple_schema, description="desc", tags=["a"])
+    projection = SchemaProjectionEntry(
+        name="projection",
+        steps=[SchemaProjectionStep(schema="sample", kind="columns", names=["id"])],
+        description="projection desc",
+    )
+
+    assert "SchemaEntry" in repr(entry)
+    assert "SchemaProjectionEntry" in repr(projection)
+
+
 # ---------------------------------------------------------------------------
 # Schema registration
 # ---------------------------------------------------------------------------
