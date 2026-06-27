@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
-
 import pandera.pandas as pa
 
 
@@ -25,7 +23,7 @@ class SchemaEntry:
 
     name: str
     schema: pa.DataFrameSchema
-    description: Optional[str] = None
+    description: str | None = None
     tags: list[str] = field(default_factory=list)
 
     def __repr__(self) -> str:
@@ -34,4 +32,28 @@ class SchemaEntry:
         return f"SchemaEntry(name={self.name!r}{desc_str}{tag_str})"
 
 
-__all__ = ["SchemaEntry"]
+@dataclass
+class SchemaProjectionEntry:
+    """A named projection built from ordered schema selection steps."""
+
+    name: str
+    steps: list["SchemaProjectionStep"]
+    description: str | None = None
+
+    def __repr__(self) -> str:
+        desc_str = f", description={self.description!r}" if self.description else ""
+        return (
+            f"SchemaProjectionEntry(name={self.name!r}, steps={self.steps!r}{desc_str})"
+        )
+
+
+@dataclass
+class SchemaProjectionStep:
+    """A single schema projection step."""
+
+    schema: str
+    kind: str
+    names: list[str]
+
+
+__all__ = ["SchemaEntry", "SchemaProjectionEntry", "SchemaProjectionStep"]

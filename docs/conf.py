@@ -1,6 +1,8 @@
 import os
 import sys
 
+from sphinx_gallery.sorting import FileNameSortKey
+
 sys.path.insert(0, os.path.abspath(".."))
 
 import pandera_catalog
@@ -19,6 +21,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
     "sphinx.ext.coverage",
+    'sphinx_gallery.gen_gallery',  # to generate a gallery of examples
     "sphinx.ext.napoleon",
     "sphinx_autodoc_typehints",
     "myst_parser",
@@ -27,6 +30,16 @@ extensions = [
 
 todo_include_todos = True
 autosummary_generate = True
+
+sphinx_gallery_conf = {
+    'filename_pattern': r'\.py',
+    'ignore_pattern': r'(__init__)|(xx.*)\.py',
+    'examples_dirs': '../examples',  # path to your example scripts
+    'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
+    'within_subsection_order': FileNameSortKey,
+    'capture_repr': ('_repr_html_', '__repr__'),
+    'image_scrapers': ["matplotlib"],
+}
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "_templates"]

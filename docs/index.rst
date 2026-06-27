@@ -11,7 +11,9 @@ Welcome to pandera-catalog's documentation!
    :hidden:
    :glob:
 
-   user_guide
+   quickstart_guide
+   user_guide/index
+   auto_examples/index
    api/modules
 
 .. toctree::

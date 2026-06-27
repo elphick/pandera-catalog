@@ -11,7 +11,7 @@ import yaml
 
 from pandera_catalog import PanderaCatalog
 from pandera_catalog.schemas import load_schema_from_yaml, load_schema_from_dict
-from pandera_catalog.types import SchemaEntry
+from pandera_catalog.types import SchemaEntry, SchemaProjectionEntry, SchemaProjectionStep
 
 
 # ---------------------------------------------------------------------------
@@ -115,6 +115,180 @@ class TestGet:
         catalog = PanderaCatalog()
         with pytest.raises(KeyError, match="not registered"):
             catalog.get_entry("missing")
+
+
+# ---------------------------------------------------------------------------
+# Schema projection operations
+# ---------------------------------------------------------------------------
+
+
+class TestProjectionRegisterAndExport:
+    def test_register_projection_and_export_in_order(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        catalog.register_projection(
+            "value_first",
+            steps=[{"schema": "source", "kind": "columns", "names": ["value", "id"]}],
+            description="Reordered subset for reporting",
+        )
+
+        entry = catalog.get_projection_entry("value_first")
+        assert isinstance(entry, SchemaProjectionEntry)
+        assert entry.steps == [
+            SchemaProjectionStep(schema="source", kind="columns", names=["value", "id"])
+        ]
+
+        exported = catalog.export_projection("value_first")
+        assert list(exported.columns.keys()) == ["value", "id"]
+
+    def test_register_projection_duplicate_name_raises(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        catalog.register_projection(
+            "projection",
+            [{"schema": "source", "kind": "columns", "names": ["id"]}],
+        )
+
+        with pytest.raises(KeyError, match="already registered"):
+            catalog.register_projection(
+                "projection",
+                [{"schema": "source", "kind": "columns", "names": ["value"]}],
+            )
+
+    def test_register_projection_overwrite(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        catalog.register_projection(
+            "projection",
+            [{"schema": "source", "kind": "columns", "names": ["id"]}],
+        )
+        catalog.register_projection(
+            "projection",
+            [{"schema": "source", "kind": "columns", "names": ["value"]}],
+            overwrite=True,
+        )
+        entry = catalog.get_projection_entry("projection")
+        assert entry.steps == [
+            SchemaProjectionStep(schema="source", kind="columns", names=["value"])
+        ]
+
+    def test_register_projection_source_schema_missing_raises(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        with pytest.raises(KeyError, match="not registered"):
+            catalog.register_projection(
+                "projection",
+                [{"schema": "missing", "kind": "columns", "names": ["id"]}],
+            )
+
+    def test_register_projection_empty_steps_raises(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        with pytest.raises(ValueError, match="steps cannot be empty"):
+            catalog.register_projection("projection", [])
+
+    def test_register_projection_empty_names_raises(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        with pytest.raises(ValueError, match="names cannot be empty"):
+            catalog.register_projection(
+                "projection",
+                [{"schema": "source", "kind": "columns", "names": []}],
+            )
+
+    def test_register_projection_unknown_columns_raises(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        with pytest.raises(ValueError, match="not found in source schema"):
+            catalog.register_projection(
+                "projection",
+                [{"schema": "source", "kind": "columns", "names": ["id", "missing"]}],
+            )
+
+    def test_register_projection_duplicate_columns_raises(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        with pytest.raises(ValueError, match="contain duplicates across steps"):
+            catalog.register_projection(
+                "projection",
+                [{"schema": "source", "kind": "columns", "names": ["id", "id"]}],
+            )
+
+    def test_register_projection_duplicate_columns_across_schemas_raises(self):
+        catalog = PanderaCatalog()
+        catalog.register("left", pa.DataFrameSchema({"id": pa.Column(int), "a": pa.Column(int)}))
+        catalog.register(
+            "right", pa.DataFrameSchema({"id": pa.Column(int), "b": pa.Column(int)})
+        )
+        with pytest.raises(ValueError, match="contain duplicates across steps"):
+            catalog.register_projection(
+                "projection",
+                [
+                    {"schema": "left", "kind": "columns", "names": ["id", "a"]},
+                    {"schema": "right", "kind": "columns", "names": ["id", "b"]},
+                ],
+            )
+
+    def test_register_projection_group_step_not_implemented(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        with pytest.raises(NotImplementedError, match="not implemented"):
+            catalog.register_projection(
+                "projection",
+                [{"schema": "source", "kind": "group", "names": ["core"]}],
+            )
+
+    def test_register_projection_unknown_kind_raises(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        with pytest.raises(ValueError, match="Unknown projection step kind"):
+            catalog.register_projection(
+                "projection",
+                [{"schema": "source", "kind": "invalid", "names": ["id"]}],
+            )
+
+    def test_register_projection_with_dataclass_steps(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        steps = [SchemaProjectionStep(schema="source", kind="columns", names=["id"])]
+        catalog.register_projection("projection", steps=steps)
+        assert catalog.get_projection_entry("projection").steps == steps
+
+    def test_register_projection_multi_schema_order(self):
+        catalog = PanderaCatalog()
+        catalog.register("left", pa.DataFrameSchema({"a": pa.Column(int), "b": pa.Column(int)}))
+        catalog.register("right", pa.DataFrameSchema({"c": pa.Column(int), "d": pa.Column(int)}))
+        catalog.register_projection(
+            "projection",
+            [
+                {"schema": "right", "kind": "columns", "names": ["d"]},
+                {"schema": "left", "kind": "columns", "names": ["a", "b"]},
+                {"schema": "right", "kind": "columns", "names": ["c"]},
+            ],
+        )
+        exported = catalog.export_projection("projection")
+        assert list(exported.columns.keys()) == ["d", "a", "b", "c"]
+
+    def test_get_projection_missing_raises(self):
+        catalog = PanderaCatalog()
+        with pytest.raises(KeyError, match="not registered"):
+            catalog.get_projection_entry("missing")
+
+    def test_remove_projection(self, simple_schema):
+        catalog = PanderaCatalog()
+        catalog.register("source", simple_schema)
+        catalog.register_projection(
+            "projection",
+            [{"schema": "source", "kind": "columns", "names": ["id"]}],
+        )
+
+        catalog.remove_projection("projection")
+        assert catalog.list_projections() == []
+
+    def test_remove_projection_missing_raises(self):
+        catalog = PanderaCatalog()
+        with pytest.raises(KeyError, match="not registered"):
+            catalog.remove_projection("missing")
 
 
 # ---------------------------------------------------------------------------
