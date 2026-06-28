@@ -217,3 +217,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 /docs/sg_execution_times.rst
+/docs/api/_autosummary/
+/docs/auto_examples/
