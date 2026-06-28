@@ -52,12 +52,24 @@ class SqlCatalogBackend:
 
     def __init__(
         self,
-        engine: Engine | None = None,
-        url: str = "sqlite:///:memory:",
+        engine: Engine | str | None = None,
+        url: str | None = None,
     ) -> None:
-        if engine is not None and url != "sqlite:///:memory:":
+        if isinstance(engine, str):
+            if url is not None:
+                raise ValueError("Pass either a positional URL or url=, not both.")
+            url = engine
+            engine = None
+
+        if engine is not None and url is not None:
             raise ValueError("Pass either engine or url, not both.")
-        self.engine: Engine = engine if engine is not None else create_engine(url, future=True)
+
+        if url is None:
+            url = "sqlite:///:memory:"
+
+        self.engine: Engine = (
+            engine if engine is not None else create_engine(url, future=True)
+        )
         self.metadata = MetaData()
         self.schemas = Table(
             "catalog_schemas",

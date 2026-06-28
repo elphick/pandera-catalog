@@ -16,7 +16,7 @@ from pandera_catalog import CatalogViewReader, PanderaCatalog, SqlCatalogBackend
 # %%
 # Create a SQL-backed catalog
 # ---------------------------
-backend = SqlCatalogBackend("sqlite:///catalog.db")
+backend = SqlCatalogBackend(url="sqlite:///catalog.db")
 catalog = PanderaCatalog(backend=backend)
 
 catalog.register(
@@ -52,5 +52,4 @@ projection_steps
 
 #%%
 schema_columns
-
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandera.pandas as pa
+import pytest
 from sqlalchemy import create_engine, text
 
 from pandera_catalog import PanderaCatalog, SqlCatalogBackend
@@ -49,6 +50,23 @@ def test_backend_accepts_engine(tmp_path):
         rows = conn.execute(text("SELECT schema_name FROM v_schema_catalog")).fetchall()
 
     assert rows == [("source",)]
+
+
+def test_backend_accepts_positional_url(tmp_path):
+    backend = SqlCatalogBackend(_sqlite_url(tmp_path / "positional.sqlite"))
+    catalog = PanderaCatalog(backend=backend)
+    catalog.register("source", pa.DataFrameSchema({"id": pa.Column(int)}))
+
+    with backend.engine.connect() as conn:
+        rows = conn.execute(text("SELECT schema_name FROM v_schema_catalog")).fetchall()
+
+    assert rows == [("source",)]
+
+
+def test_backend_rejects_engine_and_url():
+    engine = create_engine("sqlite:///:memory:", future=True)
+    with pytest.raises(ValueError, match="Pass either engine or url"):
+        SqlCatalogBackend(engine=engine, url="sqlite:///:memory:")
 
 
 def test_views_include_materialized_projection_rows(tmp_path):

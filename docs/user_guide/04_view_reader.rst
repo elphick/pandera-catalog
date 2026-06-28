@@ -10,7 +10,7 @@ SQL views and return pandas DataFrames.
 
    from pandera_catalog import CatalogViewReader, PanderaCatalog, SqlCatalogBackend
 
-   backend = SqlCatalogBackend("sqlite:///catalog.db")
+   backend = SqlCatalogBackend(url="sqlite:///catalog.db")
    catalog = PanderaCatalog(backend=backend)
 
    catalog.register(
