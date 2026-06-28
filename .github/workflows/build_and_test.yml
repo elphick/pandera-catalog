@@ -34,7 +34,7 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Test with pytest
-        run: uv run pytest -m "not gui"
+        run: uv run pytest tests -m "not gui"
 
   coverage-badge:
     runs-on: ubuntu-latest
@@ -52,7 +52,7 @@ jobs:
 
       - name: Generate coverage report
         run: |
-          uv run pytest -m "not gui" --cov=pandera_catalog --cov-report=term-missing --cov-report=xml --cov-fail-under=60
+          uv run pytest tests -m "not gui" --cov=pandera_catalog --cov-report=term-missing --cov-report=xml --cov-fail-under=60
 
       - name: Generate coverage badge
         uses: tj-actions/coverage-badge-py@v2
